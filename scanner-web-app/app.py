@@ -59,6 +59,9 @@ def upload():
         return jsonify({'blocks': blocks})
         
     except Exception as e:
+        print(f"Error processing image: {e}")
+        return jsonify({'error': str(e)}), 500
+
 import os
 
 def get_font(size):
