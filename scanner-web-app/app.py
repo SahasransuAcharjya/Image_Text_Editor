@@ -88,7 +88,24 @@ def render():
         file_bytes = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        # Convert to PIL Image for better text rendering
+        # 1. Erase all edited text seamlessly using Inpainting
+        for edit in edits:
+            x, y, w, h = edit['x'], edit['y'], edit['w'], edit['h']
+            
+            # Create a mask for the bounding box
+            mask = np.zeros(img.shape[:2], dtype=np.uint8)
+            # Expand the mask slightly (padding) to ensure we cover the text edges completely
+            pad = 2
+            x1, y1 = max(0, x - pad), max(0, y - pad)
+            x2, y2 = min(img.shape[1], x + w + pad), min(img.shape[0], y + h + pad)
+            
+            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+            
+            # Use OpenCV's TELEA inpainting algorithm to smoothly fill the background
+            img = cv2.inpaint(img, mask, 3, cv2.INPAINT_TELEA)
+            
+        # 2. Draw the new text on the clean, inpainted image
+        # Convert to PIL Image for high-quality text rendering
         img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(img_pil)
         
@@ -96,29 +113,26 @@ def render():
             x, y, w, h = edit['x'], edit['y'], edit['w'], edit['h']
             new_text = edit['text']
             
-            # Sample background color from just outside the bounding box
-            bg_y = max(0, y - 2)
-            bg_x = max(0, x - 2)
+            # Sample the inpainted background color to decide text contrast
+            bg_y = max(0, y)
+            bg_x = max(0, x)
             bg_color_bgr = img[bg_y, bg_x].tolist() # [B, G, R]
             bg_color_rgb = (bg_color_bgr[2], bg_color_bgr[1], bg_color_bgr[0])
             
-            # Erase old text by drawing a rectangle
-            draw.rectangle([x, y, x + w, y + h], fill=bg_color_rgb)
-            
-            # Determine text color based on brightness
+            # Determine text color (white for dark backgrounds, black for light)
             brightness = bg_color_rgb[0] * 0.299 + bg_color_rgb[1] * 0.587 + bg_color_rgb[2] * 0.114
             text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
             
-            # Write new text using a nice font
-            font_size = h * 0.85 # Scale font size to fit height
+            # Write new text using the Arial font
+            font_size = h * 0.85 # Scale font size to fit original text height
             font = get_font(font_size)
             
-            # Center the text vertically in the bounding box
+            # Center the text vertically
             text_y = y + (h - font_size) / 2
             
             draw.text((x, text_y), new_text, font=font, fill=text_color)
             
-        # Convert back to cv2 for encoding
+        # Convert back to cv2 format for sending to frontend
         img = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
         
         # Encode image to send back
