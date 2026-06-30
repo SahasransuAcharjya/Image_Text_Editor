@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ET Scanner & Editor</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <i class="fa-solid fa-expand logo-icon"></i>
+                <h1>ET <span>Scanner</span></h1>
+            </div>
+            <p class="subtitle">Extract and edit text from images instantly.</p>
+        </header>
+
+        <main class="app-layout">
+            <!-- Left Column: Upload & Preview -->
+            <section class="panel image-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-regular fa-image"></i> Image Source</h2>
+                    <button id="clear-btn" class="icon-btn" title="Clear Image"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+                
+                <div id="upload-zone" class="upload-zone">
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                    <div class="upload-content">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <h3>Drag & drop an image here</h3>
+                        <p>or click to browse from your device</p>
+                    </div>
+                </div>
+
+                <div id="image-preview-container" class="image-preview-container hidden">
+                    <img id="image-preview" src="" alt="Uploaded image preview">
+                    
+                    <div id="scanning-overlay" class="scanning-overlay hidden">
+                        <div class="scan-line"></div>
+                        <div class="scanning-content">
+                            <i class="fa-solid fa-crosshairs fa-spin"></i>
+                            <span id="scan-status">Scanning text...</span>
+                            <div class="progress-bar-container">
+                                <div id="progress-bar" class="progress-bar"></div>
+                            </div>
+                            <span id="progress-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Text Editor -->
+            <section class="panel editor-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-pen-nib"></i> Extracted Text</h2>
+                    <div class="header-actions">
+                        <button id="copy-btn" class="icon-btn" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+                        <button id="download-btn" class="icon-btn" title="Download as .txt"><i class="fa-solid fa-download"></i></button>
+                    </div>
+                </div>
+                
+                <div class="editor-container">
+                    <div id="placeholder-state" class="empty-state">
+                        <i class="fa-solid fa-file-lines empty-icon"></i>
+                        <p>Upload an image to extract its text. You can then edit the text line by line.</p>
+                    </div>
+                    
+                    <div id="blocks-editor" class="blocks-editor hidden">
+                        <!-- Text blocks will be injected here -->
+                    </div>
+                    
+                    <div id="editor-actions" class="editor-actions hidden" style="margin-top: 1.5rem; text-align: right;">
+                        <button id="render-btn" class="primary-btn">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Edited Image
+                        </button>
+                    </div>
+        
+        <footer>
+            <p>Powered by EasyOCR AI Engine</p>
+        </footer>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>
