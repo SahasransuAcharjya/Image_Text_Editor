@@ -59,8 +59,19 @@ def upload():
         return jsonify({'blocks': blocks})
         
     except Exception as e:
-        print(f"Error processing image: {e}")
-        return jsonify({'error': str(e)}), 500
+import os
+
+def get_font(size):
+    # Use built-in Windows font for reliable scaling and unicode (Rupee) support
+    windows_font_path = "C:\\Windows\\Fonts\\arial.ttf"
+    if os.path.exists(windows_font_path):
+        try:
+            return ImageFont.truetype(windows_font_path, int(size))
+        except Exception as e:
+            print(f"Failed to load Arial: {e}")
+    
+    # Fallback if Arial is somehow missing
+    return ImageFont.load_default()
 
 @app.route('/render', methods=['POST'])
 def render():
@@ -74,32 +85,39 @@ def render():
         file_bytes = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
+        # Convert to PIL Image for better text rendering
+        img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(img_pil)
+        
         for edit in edits:
             x, y, w, h = edit['x'], edit['y'], edit['w'], edit['h']
             new_text = edit['text']
             
-            # 1. Erase old text by filling the bounding box with the background color
-            # Sample background color from just outside the bounding box (top-left corner ideally)
+            # Sample background color from just outside the bounding box
             bg_y = max(0, y - 2)
             bg_x = max(0, x - 2)
-            bg_color = img[bg_y, bg_x].tolist() # Returns [B, G, R]
+            bg_color_bgr = img[bg_y, bg_x].tolist() # [B, G, R]
+            bg_color_rgb = (bg_color_bgr[2], bg_color_bgr[1], bg_color_bgr[0])
             
-            # Fill the bounding box with the background color
-            cv2.rectangle(img, (x, y), (x + w, y + h), bg_color, -1)
+            # Erase old text by drawing a rectangle
+            draw.rectangle([x, y, x + w, y + h], fill=bg_color_rgb)
             
-            # 2. Determine text color (simple contrast check: if bg is dark, use white; if light, use black)
-            brightness = bg_color[0] * 0.114 + bg_color[1] * 0.587 + bg_color[2] * 0.299
+            # Determine text color based on brightness
+            brightness = bg_color_rgb[0] * 0.299 + bg_color_rgb[1] * 0.587 + bg_color_rgb[2] * 0.114
             text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
             
-            # 3. Write new text
-            # We use OpenCV's putText, we'll scale the font size to roughly fit the height
-            font_scale = h / 30.0 # Approximate scaling
-            thickness = max(1, int(font_scale * 2))
+            # Write new text using a nice font
+            font_size = h * 0.85 # Scale font size to fit height
+            font = get_font(font_size)
             
-            # Adjust text Y position because putText uses bottom-left corner
-            text_y = y + int(h * 0.75) 
-            cv2.putText(img, new_text, (x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, thickness, cv2.LINE_AA)
+            # Center the text vertically in the bounding box
+            text_y = y + (h - font_size) / 2
             
+            draw.text((x, text_y), new_text, font=font, fill=text_color)
+            
+        # Convert back to cv2 for encoding
+        img = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+        
         # Encode image to send back
         _, buffer = cv2.imencode('.png', img)
         io_buf = io.BytesIO(buffer)

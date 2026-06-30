@@ -140,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
             blocksEditor.innerHTML = '<p style="color: var(--text-secondary); text-align: center; margin-top: 2rem;">No text found in the image.</p>';
         } else {
             extractedBlocks.forEach((block, index) => {
+                // Store the original text for comparison later
+                block.originalText = block.text;
+
                 const blockDiv = document.createElement('div');
                 blockDiv.className = 'text-block';
                 
@@ -167,6 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBtn.addEventListener('click', async () => {
         if (!currentFile || extractedBlocks.length === 0) return;
         
+        // ONLY send blocks that were actually changed!
+        const changedBlocks = extractedBlocks.filter(b => b.text !== b.originalText);
+        if (changedBlocks.length === 0) {
+            alert('No changes detected. Edit some text first!');
+            return;
+        }
+
         const originalText = renderBtn.innerHTML;
         renderBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rendering...';
         renderBtn.disabled = true;
@@ -174,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const formData = new FormData();
             formData.append('image', currentFile);
-            formData.append('edits', JSON.stringify(extractedBlocks));
+            formData.append('edits', JSON.stringify(changedBlocks));
 
             const response = await fetch('http://localhost:5000/render', {
                 method: 'POST',
